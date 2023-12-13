@@ -480,3 +480,11 @@ apt-get install netcat -y
 ## Soal
 
 Lakukan pembatasan sehingga koneksi SSH pada Web Server hanya dapat dilakukan oleh masyarakat yang berada pada GrobeForest.
+
+### Solusi
+
+Pada node **GrabForest**, kita akan menginstall iptables dengan perintah
+
+```bash
+
+```
