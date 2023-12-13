@@ -479,12 +479,70 @@ apt-get install netcat -y
 
 ## Soal
 
-Lakukan pembatasan sehingga koneksi SSH pada Web Server hanya dapat dilakukan oleh masyarakat yang berada pada GrobeForest.
+### Pemasalah 1
+
+Agar topologi yang kalian buat dapat mengakses keluar, kalian diminta untuk mengkonfigurasi Aura menggunakan iptables, tetapi tidak ingin menggunakan MASQUERADE.
 
 ### Solusi
 
-Pada node **GrabForest**, kita akan menginstall iptables dengan perintah
+Pada node **Aura**, kita akan mengkonfigurasi iptables dengan perintah
 
 ```bash
-
+iptables -t nat -A POSTROUTING -s 10.15.0.0/20 -o eth0 -j SNAT --to-source 192.168.122.14
 ```
+
+- `-t nat` adalah opsi untuk menambahkan rule pada tabel nat
+- `-A POSTROUTING` adalah opsi untuk menambahkan rule pada chain POSTROUTING
+- `-s` adalah opsi untuk menentukan source IP
+- `-o` adalah opsi untuk menentukan interface
+- `-j SNAT` adalah opsi untuk melakukan SNAT
+- `--to-source` adalah opsi untuk menentukan IP yang akan digunakan untuk SNAT
+
+### Testing
+
+Pada node **Sein**, kita akan melakukan ping ke google.com dengan perintah
+
+```bash
+ping google.com
+```
+
+https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/56df455d-cb96-45df-929b-6d763b15fb1b
+
+### Pemasalah 2
+
+Kalian diminta untuk melakukan drop semua TCP dan UDP kecuali port 8080 pada TCP.
+
+### Solusi
+
+Untuk melakukan drop semua TCP dan UDP kecuali port 8080 pada TCP, kita akan mengkonfigurasi iptables pada node **SchewerMountain** dengan perintah
+
+```bash
+# Berisikhkan semua aturan yang ada jika diperlukan
+iptables -F
+# Izinkan koneksi yang masuk pada port 8080 TCP
+iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+
+# Jatuhkan semua koneksi TCP yang tidak menuju ke port 8080
+iptables -A INPUT -p tcp ! --dport 8080 -j DROP
+
+# Jatuhkan semua koneksi UDP
+iptables -A INPUT -p udp -j DROP
+```
+
+- `iptables -F` adalah opsi untuk menghapus semua rule yang ada
+
+- `iptables -A INPUT -p tcp --dport 8080 -j ACCEPT` adalah opsi untuk menambahkan rule pada chain INPUT untuk menerima koneksi TCP pada port 8080
+
+- `iptables -A INPUT -p tcp ! --dport 8080 -j DROP` adalah opsi untuk menambahkan rule pada chain INPUT untuk menolak koneksi TCP yang tidak menuju ke port 8080
+
+### Testing
+
+Untuk melakukan testing, kita akan menggunakan node **SchewerMountain** dan **Revolte**. Untuk membuat perbandingan antara port yang belum di drop dan port yang sudah di drop, kita akan menggunakan netcat pada node **Revolte** dengan perintah
+
+Perhatikan video berikut untuk melihat perbandingan antara port yang belum di drop dan port yang sudah di drop
+
+https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/25ea1a47-510a-4dec-bce0-f743b125f805
+
+### Pemasalah 3
+
+Kepala Suku North Area meminta kalian untuk membatasi DHCP dan DNS Server hanya dapat dilakukan ping oleh maksimal 3 device secara bersamaan, selebihnya akan di drop.
