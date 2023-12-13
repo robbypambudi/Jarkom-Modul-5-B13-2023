@@ -1,6 +1,6 @@
 # Jarkom-Modul-5-B13-2023
 
-- Robby Ulung Pambudi
+- Robby Ulung Pambudi (5025211042)
 - Tsaqif Daniar
 
 ## Table of Contents
@@ -442,7 +442,7 @@ service bind9 restart
 
 Berikut adalah isi dari file `named.conf.options`
 
-```
+```bash
 options {
         directory "/var/cache/bind";
 
@@ -579,3 +579,67 @@ https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/77e97ae5
 https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/d058e54a-a097-4e40-85bc-81d66602dfdb
 
     - Dari video diatas, kita dapat melihat bahwa koneksi ICMP yang lebih dari 3 akan di drop
+
+### Pemasalah 4
+
+Lakukan pembatasan sehingga koneksi SSH pada Web Server hanya dapat dilakukan oleh masyarakat yang berada pada GrobeForest.
+
+### Solusi
+
+Untuk melakukan pembatasan koneksi SSH pada Web Server hanya dapat dilakukan oleh masyarakat yang berada pada GrobeForest, kita akan mengkonfigurasi iptables pada node **Sein** dan **Stark** dengan perintah
+
+```bash
+# Soal No 4
+iptables -A INPUT -p tcp --dport 22 -s 10.15.4.0/22 -j ACCEPT
+iptables -A INPUT -p tcp --dport 22 -j DROP
+```
+
+- -s `10.15.4.0/22` adalah opsi untuk menentukan source IP yang diizinkan pada kali ini adalah subnet `10.15.4.0/22` yaitu di block A10 yang merupakan GrobeForest
+- `iptables -A INPUT -p tcp --dport 22 -j DROP` adalah opsi untuk menambahkan rule pada chain INPUT untuk menolak koneksi TCP pada port 22 yang tidak berasal dari subnet A10
+
+### Testing
+
+Untuk melakukan testing tersebut kita akan menggunakan netcat pada node **Sein** dan **Stark** dengan perintah
+
+```
+nmap 10.15.4.2 -p 22
+```
+
+https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/ede8e197-09da-4f4b-9378-6dbfd150a8a0
+
+- Dari video diatas, kita dapat melihat bahwa koneksi SSH yang berasal dari subnet A10 akan diizinkan sedangkan yang berasal dari subnet lainnya akan di drop.
+
+### Pemasalah 5
+
+Selain itu, akses menuju WebServer hanya diperbolehkan saat jam kerja yaitu Senin-Jumat pada pukul 08.00-16.00.
+
+### Solusi
+
+Untuk melakukan pembatasan akses menuju WebServer hanya diperbolehkan saat jam kerja yaitu Senin-Jumat pada pukul 08.00-16.00, kita akan mengkonfigurasi iptables pada node **Sein** dan **Stark** dengan perintah
+
+```bash
+# Izinkan akses ke Web Server pada Senin-Jumat pukul 08.00-16.00
+iptables -A INPUT -p tcp --dport 80 -m time --timestart 08:00 --timestop 16:00 --weekdays Mon,Tue,Wed,Thu,Fri -j ACCEPT
+
+# Menolak akses selain dari aturan yang telah ditentukan
+iptables -A INPUT -p tcp --dport 80 -j DROP
+```
+
+### Testing
+
+Untuk melakukan testing tersebut kita akan menggunakan netcat pada node **Sein** dan **Stark** dengan perintah
+
+```
+nc -l -p 80
+```
+
+dan melakukan akses pada node **Aura** dengan perintah
+
+```
+curl 10.15.4.2 -v
+```
+
+- **Time : 02:00**
+  ![Time : 02:00](/assets/time.png)
+
+- **Time : 09:00**
