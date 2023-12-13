@@ -546,3 +546,36 @@ https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/25ea1a47
 ### Pemasalah 3
 
 Kepala Suku North Area meminta kalian untuk membatasi DHCP dan DNS Server hanya dapat dilakukan ping oleh maksimal 3 device secara bersamaan, selebihnya akan di drop.
+
+### Solusi
+
+Untuk membatasi DHCP dan DNS Server hanya dapat dilakukan ping oleh maksimal 3 device secara bersamaan, kita akan mengkonfigurasi iptables pada node **Revolte** dan **Richter** dengan perintah
+
+```bash
+# Soal No 3
+iptables -A INPUT -p icmp -m connlimit --connlimit-above 3 --connlimit-mask 0 -j DROP
+```
+
+- `iptables -A INPUT -p icmp -m connlimit --connlimit-above 3 --connlimit-mask 0 -j DROP` adalah opsi untuk menambahkan rule pada chain INPUT untuk menolak koneksi ICMP yang lebih dari 3
+- `--connlimit-above 3` adalah opsi untuk menentukan batas koneksi
+- `--connlimit-mask 0` adalah opsi untuk menentukan mask
+
+### Testing
+
+Untuk melakukan testing, kita akan menggunakan node **Revolte** dan **Richter**. Untuk membuat perbandingan antara koneksi yang belum di batasi dan koneksi yang sudah di batasi, kita akan menggunakan netcat pada node **Revolte** dan **Richter** dengan perintah
+
+- Testing pada node **Revolte**
+
+`ping ping 10.15.0.2` dan mendapatkan hasil sebagai berikut :
+
+https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/77e97ae5-3f1f-49e7-a45b-bce04083ca75
+
+    - Dari video diatas, kita dapat melihat bahwa koneksi ICMP yang lebih dari 3 akan di drop
+
+- Testing pada node **Richter**
+
+`ping 10.15.0.2` dan mendapatkan hasil sebagai berikut :
+
+https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/d058e54a-a097-4e40-85bc-81d66602dfdb
+
+    - Dari video diatas, kita dapat melihat bahwa koneksi ICMP yang lebih dari 3 akan di drop
