@@ -281,3 +281,202 @@ iface eth0 inet static
 auto eth0
 iface eth0 inet dhcp
 ```
+
+## Routing
+
+- Himmel
+
+```
+route add -net 10.15.0.0 netmask 255.255.255.252 gw 10.15.0.130
+route add -net 10.15.0.4 netmask 255.255.255.252 gw 10.15.0.130
+```
+
+- Frieren
+
+```
+route add -net 10.15.0.0 netmask 255.255.255.252 gw 10.15.0.10
+route add -net 10.15.0.4 netmask 255.255.255.252 gw 10.15.0.10
+route add -net 10.15.0.128 netmask 255.255.255.128 gw 10.15.0.10
+route add -net 10.15.1.0 netmask 255.255.255.0 gw 10.15.0.10
+```
+
+- Aura
+
+```
+route add -net 10.15.0.0 netmask 255.255.255.252 gw 10.15.0.18
+route add -net 10.15.0.4 netmask 255.255.255.252 gw 10.15.0.18
+route add -net 10.15.0.128 netmask 255.255.255.128 gw 10.15.0.18
+route add -net 10.15.1.0 netmask 255.255.255.0 gw 10.15.0.18
+route add -net 10.15.0.8 netmask 255.255.255.252 gw 10.15.0.18
+route add -net 10.15.0.12 netmask 255.255.255.252 gw 10.15.0.18
+
+route add -net 10.15.8.0 netmask 255.255.248.0 gw 10.15.0.22
+route add -net 10.15.4.0 netmask 255.255.252.0 gw 10.15.0.22
+```
+
+> Yang lainya tidak perlu karena sudah terhubung dengan router yang lain. Contoh : Sein sudah terhubung dengan Heiter, sehingga tidak perlu di routing lagi. Begitu juga dengan GrabForest dan TurkRegion.
+
+## Konfigurasi DHCP
+
+### DHCP Server
+
+Pada DHCP Server, kita akan menginstall isc-dhcp-server dengan perintah
+
+```bash
+apt-get update
+wait
+apt-get install isc-dhcp-server -y
+wait
+
+echo '
+INTERFACESv4="eth0"
+INTERFACESv6=""
+' > /etc/default/isc-dhcp-server
+
+cp ~/dhcpd.conf /etc/dhcp/dhcpd.conf
+
+service isc-dhcp-server restart
+```
+
+Kemudian pada file dhcpd.conf, kita akan mengkonfigurasi seperti berikut
+
+```bash
+
+option domain-name "example.org";
+option domain-name-servers ns1.example.org, ns2.example.org;
+
+default-lease-time 600;
+max-lease-time 7200;
+
+ddns-update-style none;
+
+subnet 10.15.0.0 netmask 255.255.255.252 {
+}
+
+subnet 10.15.0.128 netmask 255.255.255.128 {
+    range 10.15.0.131 10.15.0.254;
+    option routers 10.15.0.129;
+    option broadcast-address 10.15.0.255;
+    option domain-name-servers 10.15.0.6;
+    default-lease-time 180;
+    max-lease-time 5760;
+}
+
+subnet 10.15.1.0 netmask 255.255.255.0 {
+    range 10.15.1.2 10.15.1.254;
+    option routers 10.15.1.1;
+    option broadcast-address 10.15.1.255;
+    option domain-name-servers 10.15.0.6;
+    default-lease-time 180;
+    max-lease-time 5760;
+}
+
+subnet 10.15.8.0 netmask 255.255.248.0 {
+    range 10.15.8.2 10.15.15.254;
+    option routers 10.15.8.1;
+    option broadcast-address 10.15.15.255;
+    option domain-name-servers 10.15.0.6;
+    default-lease-time 180;
+    max-lease-time 5760;
+}
+
+subnet 10.15.4.0 netmask 255.255.252.0 {
+    range 10.15.4.3 10.15.7.254;
+    option routers 10.15.4.1;
+    option broadcast-address 10.15.7.255;
+    option domain-name-servers 10.15.0.6;
+    default-lease-time 180;
+    max-lease-time 5760;
+}
+```
+
+- `option domain-name-servers` adalah DNS Server yang akan digunakan
+- `default-lease-time` adalah waktu lease default
+- `max-lease-time` adalah waktu lease maksimal
+- `subnet` adalah subnet yang akan digunakan
+- `range` adalah range IP yang akan digunakan
+- `option routers` adalah IP dari router yang akan digunakan
+- `option broadcast-address` adalah IP broadcast yang akan digunakan
+
+### DHCP Relay
+
+Install isc-dhcp-relay pada route **Himmel dan Heiter** dengan perintah
+
+```bash
+# Configuration DHCP Relay
+apt-get update
+wait
+apt-get install isc-dhcp-relay -y
+wait
+
+echo '
+SERVERS="10.15.0.2"
+INTERFACES="eth0 eth1 eth2"
+OPTIONS="-m replace"
+' >  /etc/default/isc-dhcp-relay
+
+echo '
+net.ipv4.ip_forward=1
+' >  /etc/sysctl.conf
+```
+
+- `SERVERS` adalah IP dari DHCP Server yang akan digunakan
+- `INTERFACES` adalah interface yang akan digunakan untuk DHCP Relay
+- `OPTIONS` adalah opsi yang digunakan untuk DHCP Relay
+- `net.ipv4.ip_forward=1` adalah opsi untuk mengaktifkan ip forwarding
+
+## Konfigurasi DNS
+
+```
+apt-get update
+wait
+
+apt-get install bind9 -y
+wait
+cp ~/named.conf.options /etc/bind/
+
+service bind9 restart
+```
+
+- `named.conf.options` adalah konfigurasi DNS Server
+
+Berikut adalah isi dari file `named.conf.options`
+
+```
+options {
+        directory "/var/cache/bind";
+
+        forwarders {
+                192.168.122.1;
+        };
+
+        allow-query{any;};
+        auth-nxdomain no;
+        listen-on-v6 { any; };
+};
+```
+
+- `forwarders` adalah DNS Server yang akan digunakan untuk forward
+- `allow-query` adalah opsi untuk mengizinkan query dari semua IP
+- `auth-nxdomain no` adalah opsi untuk mengizinkan domain yang tidak ada
+
+## Konfigurasi Web Server
+
+Untuk konfigurasi web server, kita akan menginstall nginx pada node **Sein dan Stark** dengan perintah
+
+```bash
+apt-get update
+wait
+apt-get install nginx -y
+wait
+cp ~/index.nginx-debian.html /var/www/html
+service nginx start
+apt-get install netcat -y
+```
+
+- `index.nginx-debian.html` adalah file html yang akan ditampilkan pada web server nanti
+- `netcat` adalah aplikasi yang digunakan untuk mengirimkan data ke web server
+
+## Soal
+
+Lakukan pembatasan sehingga koneksi SSH pada Web Server hanya dapat dilakukan oleh masyarakat yang berada pada GrobeForest.
