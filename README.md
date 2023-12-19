@@ -1,7 +1,7 @@
 # Jarkom-Modul-5-B13-2023
 
 - Robby Ulung Pambudi (5025211042)
-- Tsaqif Daniar
+- Tsaqif Deniar Bhakti (5025211151)
 
 ## Table of Contents
 
