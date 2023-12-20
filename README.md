@@ -639,40 +639,32 @@ dan melakukan akses pada node **Aura** dengan perintah
 curl 10.15.4.2 -v
 ```
 
-- **Time : 02:00**
-  ![Time : 02:00](/assets/time.png)
-
-- **Time : 09:00**
-
 ### Permasalahan 6
 
 Lalu, karena ternyata terdapat beberapa waktu di mana network administrator dari WebServer tidak bisa stand by, sehingga perlu ditambahkan rule bahwa akses pada hari Senin - Kamis pada jam 12.00 - 13.00 dilarang (istirahat maksi cuy) dan akses di hari Jumat pada jam 11.00 - 13.00 juga dilarang (maklum, Jumatan rek).
 
 ### Solusi
 
-Untuk melakukan pembatasan akses pada hari Senin - Kamis pada jam 12.00 - 13.00 dilarang dan akses di hari Jumat pada jam 11.00 - 13.00 juga dilarang, kita akan mengkonfigurasi iptables pada node *Sein* dan *Stark* dengan perintah
+Untuk melakukan pembatasan akses pada hari Senin - Kamis pada jam 12.00 - 13.00 dilarang dan akses di hari Jumat pada jam 11.00 - 13.00 juga dilarang, kita akan mengkonfigurasi iptables pada node **Sein** dan **Stark** dengan perintah
 
-bash
 ### Larangan akses pada hari Senin-Kamis pada jam 12.00-13.00
-```iptables -A INPUT -p tcp --dport 80 -m time --timestart 12:00 --timestop 13:00 --weekdays Mon,Tue,Wed,Thu -j DROP```
+
+`iptables -A INPUT -p tcp --dport 80 -m time --timestart 12:00 --timestop 13:00 --weekdays Mon,Tue,Wed,Thu -j DROP`
 
 ### Larangan akses pada hari Jumat pada jam 11.00-13.00
-```iptables -A INPUT -p tcp --dport 80 -m time --timestart 11:00 --timestop 13:00 --weekdays Fri -j DROPs```
 
+`iptables -A INPUT -p tcp --dport 80 -m time --timestart 11:00 --timestop 13:00 --weekdays Fri -j DROPs`
 
 ### Testing
 
-Untuk melakukan testing tersebut kita akan menggunakan netcat pada node *Sein* dan *Stark* dengan perintah
+Untuk melakukan testing tersebut kita akan menggunakan netcat pada node **Sein** dan **Stark** dengan perintah
 
+`nc -l -p 80`
 
-```nc -l -p 80```
-
-
-dan melakukan akses pada node *Aura* dengan perintah
+dan melakukan akses pada node **Aura** dengan perintah
 
 bash
-```nmap 10.15.4.2 -p 80```
-
+`nmap 10.15.4.2 -p 80`
 
 https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/0a36fd29-9ad1-4401-bc4c-a78a552f188f
 
@@ -682,14 +674,132 @@ Karena terdapat 2 WebServer, kalian diminta agar setiap client yang mengakses Se
 
 ### Solusi
 
-Untuk melakukan pembagian beban pada web server, kita akan mengkonfigurasi iptables pada node *Sein* dan *Stark* dengan perintah
+Untuk melakukan pembagian beban pada web server, kita akan mengkonfigurasi iptables pada node **Sein** dan **Stark** dengan perintah
 
-bash
+```bash
 # Soal No 7
-```
 iptables -A PREROUTING -t nat -p tcp -d 10.15.4.2 --dport 80 -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 10.15.4.2:80
 iptables -A PREROUTING -t nat -p tcp -d 10.15.4.2 --dport 80 -j DNAT --to-destination 10.15.0.14:80
 
 iptables -A PREROUTING -t nat -p tcp -d 10.15.0.14 --dport 443 -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 10.15.0.14:443
 iptables -A PREROUTING -t nat -p tcp -d 10.15.0.14 --dport 443 -j DNAT --to-destination 10.15.4.2:443
 ```
+
+### Testing
+
+Untuk mencoba soal no 7 kita hanya tinggal melakukan pemangilan berulang kali dengan menggunakan curl pada node dengan ip 10.15.4.2
+
+Maka akan didapatkan hasil sebagai berikut :
+![No7](/assets/no7.png)
+
+dari gambar diatas kita bisa lihat bahwa hasilnya sudah berubah-ubah
+
+### Permasalahan 8
+
+Karena berbeda koalisi politik, maka subnet dengan masyarakat yang berada pada Revolte dilarang keras mengakses WebServer hingga masa pencoblosan pemilu kepala suku 2024 berakhir. Masa pemilu (hingga pemungutan dan penghitungan suara selesai) kepala suku bersamaan dengan masa pemilu Presiden dan Wakil Presiden Indonesia 2024.
+
+### Solusi
+
+Untuk mengerjakan nomor ini diperlukan bantuan --datestart dan --datestop untuk melakukan pembatasan akses pada hari-hari tertentu. Disini diperlukan subnet dari Revolte karena pembatasn yang diinginkan adalah terhadap subnet. Disini subnet kami adalah terdapat pada A1 dimana memiliki ip 10.15.0.0/30 dan menentukan protokol yang digunakan sebagai berikut
+
+```bash
+iptables -A INPUT -p tcp --dport 80 -s 10.15.0.0/30 -m time --datestart 2023-12-10 --datestop 2024-02-15 -j DROP
+```
+
+- `iptables -A INPUT` adalah opsi untuk menambahkan rule pada chain INPUT untuk menolak koneksi TCP pada port 80 yang berasal dari subnet A1
+- `-p tcp` adalah opsi untuk menentukan protokol yang digunakan
+- `--dport 80` adalah opsi untuk menentukan port yang digunakan
+- `--datestart` adalah opsi untuk menentukan tanggal mulai pembatasan akses
+- `--datestop` adalah opsi untuk menentukan tanggal berakhirnya pembatasan akses
+- `-j DROP` adalah opsi untuk menolak koneksi
+
+### Testing
+
+Untuk melakukan testing tersebut kita akan menggunakan netcat pada node **Sein** dan **Stark** dengan perintah
+`nc -l -p 80`
+
+atau bisa melihat gambar berikut :
+![no8](/assets/no8.png)
+![no81](/assets/no8-1.png)
+
+### Pemasalah 9
+
+Sadar akan adanya potensial saling serang antar kubu politik, maka WebServer harus dapat secara otomatis memblokir alamat IP yang melakukan scanning port dalam jumlah banyak (maksimal 20 scan port) di dalam selang waktu 10 menit.
+
+### Solusi
+
+Untuk mengerjakan nomor ini diperlukan bantuan --hitcount dan --seconds untuk melakukan pembatasan akses pada hari-hari tertentu. Selanjutnya kita bisa mengatur settingan dari iptables sebagai berikut :
+
+```bash
+iptables -N PORTSCAN
+iptables -A PORTSCAN -m recent --set --name portscan
+iptables -A PORTSCAN -m recent --update --seconds 600 --hitcount 20 --name portscan -j DROP
+iptables -A INPUT -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m limit --limit 2/s -j ACCEPT
+iptables -A INPUT -p tcp --tcp-flags SYN,ACK,FIN,RST RST -j PORTSCAN
+```
+
+### Testing
+
+Kita bisa melakukan testing untuk menentukan apakah port tersebut terbuka atau tidak dengan menggunakan nmap pada node **SchewerMountain** dengan perintah
+
+```
+nmap 10.15.0.14 -p 1-10 # Masi bisa ngescan
+nmap 10.15.0.14 -p 1-30 # Langsung di block
+```
+
+![no9](/assets/9.png)
+![no9-1](/assets//9-1.png)
+
+dari gambar diatas kita bisa lihat bahwa port 1-10 masih bisa di scan sedangkan port 1-30 sudah tidak bisa di scan lagi
+
+### Pemasalah 10
+
+Karena kepala suku ingin tau paket apa saja yang di-drop, maka di setiap node server dan router ditambahkan logging paket yang di-drop dengan standard syslog level.
+
+### Solusi
+
+Untuk melakukan logging paket yang di-drop, kita akan mengkonfigurasi iptables pada node **Sein** dan **Stark** dengan perintah
+
+Pada kali ini kita akan meneruskan permaslahan ke 9 dan menambahakan script berikut ini :
+
+```bash
+iptables -A PORTSCAN -m recent --update --seconds 600 --hitcount 20 --name portscan -j LOG --log-prefix "Portscan Detected: " --log-level 4
+```
+
+`LOG --log-prefix "Portscan detected: " --log-level 4` dengan tujuan untuk mengarahkan paket yang memenuhi aturan untuk dilakukan logging.
+
+- j LOG` digunakan untuk melakukan logging.
+- --log-prefix "Portscan detected: ": digunakan untuk menambahkan prefix kedalam log yaitu teks "Portscan detected: {isi log}".
+- --log-level 4: menentukan tingakatan atau level log pada syslog, dalam hal ini level 4 berarti 'Warning'.
+
+Karena pada log sebelumnya kita menentukan level log 4 (warning), selanjutnya kita perlu melakukan konfigurasi pada etc/rsyslog.d/50-default.conf untuk menambahkan configurasi kernel.warning -/var/log/iptables.log sehingga seperti configurasi dibawah ini
+
+```
+#
+# First some standard log files.  Log by facility.
+#
+auth,authpriv.*                 /var/log/auth.log
+*.*;auth,authpriv.none          -/var/log/syslog
+#cron.*                         /var/log/cron.log
+#daemon.*                       -/var/log/daemon.log
+kern.*                          -/var/log/kern.log
+kernel.warning                  -/var/log/iptables.log
+#lpr.*                          -/var/log/lpr.log
+mail.*                          -/var/log/mail.log
+#user.*                         -/var/log/user.log
+
+#
+# Logging for the mail system.  Split it up so that
+# it is easy to write scripts to parse these files.
+#
+#mail.info                      -/var/log/mail.info
+#mail.warn                      -/var/log/mail.warn
+mail.err                        /var/log/mail.err
+```
+
+jika sudah kita perlu melakukan menjalankan command touch /var/log/iptables.log dan menjalankan /etc/init.d/rsyslog restart untuk melakukan restart syslog supaya konfigurasi baru dapat diterapkan kedalam syslog dan hasil log bisa masuk kedalam iptables.log
+
+## Kendala
+
+- Terdapat kesulitan pada no 10 karena log tidak tercatat pada iptables.log
+- Waktu praktikum yang bertabrakan dengan waktu EAS
