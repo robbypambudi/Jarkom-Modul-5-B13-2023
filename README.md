@@ -643,3 +643,51 @@ curl 10.15.4.2 -v
   ![Time : 02:00](/assets/time.png)
 
 - **Time : 09:00**
+
+### Permasalahan 6
+
+Lalu, karena ternyata terdapat beberapa waktu di mana network administrator dari WebServer tidak bisa stand by, sehingga perlu ditambahkan rule bahwa akses pada hari Senin - Kamis pada jam 12.00 - 13.00 dilarang (istirahat maksi cuy) dan akses di hari Jumat pada jam 11.00 - 13.00 juga dilarang (maklum, Jumatan rek).
+
+### Solusi
+
+Untuk melakukan pembatasan akses pada hari Senin - Kamis pada jam 12.00 - 13.00 dilarang dan akses di hari Jumat pada jam 11.00 - 13.00 juga dilarang, kita akan mengkonfigurasi iptables pada node *Sein* dan *Stark* dengan perintah
+
+bash
+# Larangan akses pada hari Senin-Kamis pada jam 12.00-13.00
+iptables -A INPUT -p tcp --dport 80 -m time --timestart 12:00 --timestop 13:00 --weekdays Mon,Tue,Wed,Thu -j DROP
+
+# Larangan akses pada hari Jumat pada jam 11.00-13.00
+iptables -A INPUT -p tcp --dport 80 -m time --timestart 11:00 --timestop 13:00 --weekdays Fri -j DROPs
+
+
+### Testing
+
+Untuk melakukan testing tersebut kita akan menggunakan netcat pada node *Sein* dan *Stark* dengan perintah
+
+
+nc -l -p 80
+
+
+dan melakukan akses pada node *Aura* dengan perintah
+
+bash
+nmap 10.15.4.2 -p 80
+
+
+https://github.com/robbypambudi/Jarkom-Modul-5-B13-2023/assets/34505233/0a36fd29-9ad1-4401-bc4c-a78a552f188f
+
+### Pemasalah 7
+
+Karena terdapat 2 WebServer, kalian diminta agar setiap client yang mengakses Sein dengan Port 80 akan didistribusikan secara bergantian pada Sein dan Stark secara berurutan dan request dari client yang mengakses Stark dengan port 443 akan didistribusikan secara bergantian pada Sein dan Stark secara berurutan.
+
+### Solusi
+
+Untuk melakukan pembagian beban pada web server, kita akan mengkonfigurasi iptables pada node *Sein* dan *Stark* dengan perintah
+
+bash
+# Soal No 7
+iptables -A PREROUTING -t nat -p tcp -d 10.15.4.2 --dport 80 -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 10.15.4.2:80
+iptables -A PREROUTING -t nat -p tcp -d 10.15.4.2 --dport 80 -j DNAT --to-destination 10.15.0.14:80
+
+iptables -A PREROUTING -t nat -p tcp -d 10.15.0.14 --dport 443 -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 10.15.0.14:443
+iptables -A PREROUTING -t nat -p tcp -d 10.15.0.14 --dport 443 -j DNAT --to-destination 10.15.4.2:443
